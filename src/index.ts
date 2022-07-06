@@ -2,7 +2,7 @@ import {
   createElement,
   Fragment,
   ReactPortal,
-  useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -21,115 +21,78 @@ function useIsFirstRender(): boolean {
 }
 
 export default function hfcToReact(HFC: typeof HyperFunctionComponent) {
-  const propTypes = HFC.propTypes || {};
-  const attrTypes = propTypes.attrs || {};
-  const eventTypes = propTypes.events || {};
-  const slotTypes = propTypes.slots || {};
+  const attrNames = new Set(HFC.propNames.attrs);
+  const eventNames = new Set(HFC.propNames.events);
+  const slotNames = new Set(HFC.propNames.slots);
 
   return function (props: any) {
     const isFirst = useIsFirstRender();
-    const attrs = useRef<Record<string, any>>({});
-    const events = useRef<Record<string, any>>({});
-    const slots = useRef<Record<string, any>>({});
-    const originalSlots = useRef<Record<string, any>>({});
-    const others = useRef<Record<string, any>>({});
+    const attrs: Record<string, any> = {};
+    const events: Record<string, any> = {};
+    const slots: Record<string, any> = {};
+    const others: Record<string, any> = {};
 
     const container = useRef<HTMLElement | null>(null);
     const [portals, setPortals] = useState<ReactPortal[]>([]);
 
     const hfc = useRef<HyperFunctionComponent | null>(null);
 
-    useEffect(() => {
-      hfc.current!.connected(container.current!);
-      return () => hfc.current!.disconnected?.();
+    useLayoutEffect(() => {
+      hfc.current = new HFC(container.current!, {
+        attrs,
+        events,
+        slots,
+        others,
+      });
+
+      return () => hfc.current!.disconnected();
     }, [container]);
+
+    useLayoutEffect(() => {
+      if (!isFirst) {
+        hfc.current!.changed({ attrs, events, slots, others });
+      }
+    }, [props]);
 
     const propKeys = Object.keys(props);
     for (let i = 0; i < propKeys.length; i++) {
       const key = propKeys[i];
-      if (attrTypes[key]) {
-        if (isFirst) {
-          attrs.current[key] = props[key];
-        } else {
-          if (attrs.current[key] !== props[key]) {
-            hfc.current!.changed?.("attr", key, attrs.current[key], props[key]);
-            attrs.current[key] = props[key];
-          }
-        }
+      if (attrNames.has(key)) {
+        attrs[key] = props[key];
         continue;
       }
 
-      if (eventTypes[key]) {
-        if (isFirst) {
-          events.current[key] = props[key];
-        } else {
-          if (events.current[key] !== props[key]) {
-            hfc.current!.changed?.(
-              "event",
-              key,
-              events.current[key],
-              props[key]
-            );
-            events.current[key] = props[key];
-          }
-        }
+      if (eventNames.has(key)) {
+        events[key] = props[key];
         continue;
       }
 
-      if (slotTypes[key]) {
-        const hasChanged = originalSlots.current[key] !== props[key];
-        if (isFirst || hasChanged) {
-          const slotFn = (container: HTMLElement, ps: any) => {
-            const instance = props[key](ps);
-            const portal = createPortal(instance, container);
-            portal.key = key;
+      if (slotNames.has(key)) {
+        slots[key] = (container: HTMLElement, ps: any) => {
+          const node = props[key](ps);
+          const portal = createPortal(node, container);
+          portal.key = key;
 
-            setPortals((portals) => {
-              const index = portals.findIndex((item) => item.key === key);
-              if (index === -1) {
-                portals.push(portal);
-              } else {
-                portals[index] = portal;
-              }
+          setPortals((portals) => {
+            const index = portals.findIndex((item) => item.key === key);
+            if (index === -1) {
+              portals.push(portal);
+            } else {
+              portals[index] = portal;
+            }
 
-              return [...portals];
-            });
-          };
+            return [...portals];
+          });
+        };
 
-          if (isFirst) {
-            slots.current[key] = slotFn;
-            originalSlots.current[key] = props[key];
-          } else {
-            hfc.current!.changed?.("slot", key, slots.current[key], slotFn);
-            originalSlots.current[key] = props[key];
-            slots.current[key] = slotFn;
-          }
-        }
         continue;
       }
 
-      // others
-      if (isFirst) {
-        others.current[key] = props[key];
-      } else {
-        if (others.current[key] !== props[key]) {
-          hfc.current!.changed?.("other", key, others.current[key], props[key]);
-          others.current[key] = props[key];
-        }
-      }
-    }
-
-    if (isFirst) {
-      hfc.current = new HFC({
-        attrs: attrs.current,
-        events: events.current,
-        slots: slots.current,
-        others: others.current,
-      });
+      others[key] = props[key];
     }
 
     return createElement(Fragment, {}, [
-      createElement(HFC.tag || "div", { ref: container }),
+      createElement(HFC.tag, { ref: container }),
       ...portals,
     ]);
   };

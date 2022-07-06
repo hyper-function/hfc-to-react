@@ -22,50 +22,47 @@
 
       class HFC {
         static tag = "p";
-        static propTypes = {
-          attrs: { a: "1", b: "2", c: "3" },
-          events: { ea: "1", eb: "2", ec: "3" },
-          slots: { sa: "1", sb: "2", sc: "3" },
+        static propNames = {
+          attrs: ["a", "b", "c"],
+          events: ["ea", "eb", "ec"],
+          slots: ["sa", "sb", "sc"],
         };
-        constructor(props) {
-          this.props = props;
+        constructor(container, props) {
+          this.container = container;
           console.log(props);
+          this.render(props);
         }
-        connected(container) {
-          const btn = document.createElement("button");
-          btn.innerText = "click me";
-          btn.onclick = () => {
-            this.props.events.eb();
-          };
-
-          const slot = document.createElement("p");
-          let a = 0;
-          setInterval(() => {
-            a += 1;
-            console.log(a);
-            this.props.slots.sb(slot, { a });
-          }, 2000);
-          this.props.slots.sb(slot, { a });
-
-          container.appendChild(btn);
-          container.appendChild(slot);
-        }
-        changed(type, name, oldV, newV) {
-          if (type === "attr") {
-            console.log(`${name} changed from ${oldV} to ${newV}`);
-            this.props.attrs[name] = newV;
-          } else if (type === "event") {
-            console.log(`${name} changed from ${oldV} to ${newV}`);
-            this.props.events[name] = newV;
-          } else if (type === "slot") {
-            console.log(`${name} changed from ${oldV} to ${newV}`);
-            this.props.slots[name] = newV;
-          } else if (type === "other") {
-            console.log(`${name} changed from ${oldV} to ${newV}`);
-          }
+        changed(props) {
+          console.log("changed");
+          // this.render(props);
+          this.host.innerText = props.attrs.b;
+          props.slots.sb(this.slot, { a: props.attrs.b });
         }
         disconnected() {
           console.log("disconnected");
+        }
+        render(props) {
+          const btn = document.createElement("button");
+          btn.innerText = "click me";
+          btn.onclick = () => {
+            props.events.eb();
+          };
+
+          this.slot = document.createElement("p");
+          // let a = 0;
+          // setInterval(() => {
+          //   a += 1;
+          //   console.log(a);
+          //   props.slots.sb(this.slot, { a });
+          // }, 2000);
+          // props.slots.sb(this.slot, { a });
+
+          this.host = document.createElement("h3");
+          this.host.innerText = props.attrs.b;
+
+          this.container.appendChild(this.host);
+          this.container.appendChild(btn);
+          this.container.appendChild(this.slot);
         }
       }
 
@@ -74,13 +71,13 @@
         const [b, setB] = React.useState(0);
         React.useEffect(() => {
           setInterval(() => {
-            setB((b) => b + 1);
+            setB((b) => b + 2);
           }, 2000);
         }, []);
 
-        if (b > 2) {
-          return React.createElement("div", {}, "over");
-        }
+        // if (b > 2) {
+        //   return React.createElement("div", {}, "over");
+        // }
 
         return React.createElement(Comp, {
           b,
@@ -88,6 +85,7 @@
             console.log("fire eb");
           },
           sb: (props) => {
+            console.log("ssbb");
             return React.createElement("h1", {}, "slot: " + props.a);
           },
           otot: 2,
