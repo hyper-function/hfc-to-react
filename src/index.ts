@@ -75,11 +75,7 @@ export default function hfcToReact(HFC: typeof HyperFunctionComponent) {
 
           setPortals((portals) => {
             const index = portals.findIndex((item) => item.key === key);
-            if (index === -1) {
-              portals.push(portal);
-            } else {
-              portals[index] = portal;
-            }
+            index === -1 ? portals.push(portal) : (portals[index] = portal);
 
             return [...portals];
           });
