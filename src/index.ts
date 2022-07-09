@@ -69,9 +69,10 @@ export default function hfcToReact(HFC: typeof HyperFunctionComponent) {
 
       if (slotNames.has(key)) {
         slots[key] = (container: HTMLElement, ps: any) => {
+          ps = ps || {};
           const node = props[key](ps);
           const portal = createPortal(node, container);
-          portal.key = key;
+          portal.key = ps.key || key;
 
           setPortals((portals) => {
             const index = portals.findIndex((item) => item.key === key);
