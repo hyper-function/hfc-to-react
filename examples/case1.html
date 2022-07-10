@@ -25,7 +25,7 @@
         static propNames = {
           attrs: ["a", "b", "c"],
           events: ["ea", "eb", "ec"],
-          slots: ["sa", "sb", "sc"],
+          slots: ["sa", "sb", "sc", "default"],
         };
         constructor(container, props) {
           this.container = container;
@@ -57,12 +57,26 @@
           // }, 2000);
           // props.slots.sb(this.slot, { a });
 
+          const sa = document.createElement("div");
+          sa.id = "sa";
+          props.slots.sa(sa);
+
+          const sc = document.createElement("div");
+          sa.id = "sc";
+          props.slots.sc(sc);
+
           this.host = document.createElement("h3");
           this.host.innerText = props.attrs.b;
+
+          const de = document.createElement("p");
+          props.slots.default(de, {});
 
           this.container.appendChild(this.host);
           this.container.appendChild(btn);
           this.container.appendChild(this.slot);
+          this.container.appendChild(sa);
+          this.container.appendChild(sc);
+          this.container.appendChild(de);
         }
       }
 
@@ -84,10 +98,19 @@
           eb: () => {
             console.log("fire eb");
           },
+          sa: React.createElement("h1", {}, "sa"),
           sb: (props) => {
             console.log("ssbb");
             return React.createElement("h1", {}, "slot: " + props.a);
           },
+          sc: "plain text",
+          // children: "text children",
+          // children: React.createElement("h1", {}, "one element children"),
+          children: [
+            React.createElement("h1", {}, "array1 element children"),
+            React.createElement("h1", {}, "array2 element children"),
+            React.createElement("h1", {}, "array3 element children"),
+          ],
           otot: 2,
           onclick: () => {
             console.log("esbebww");

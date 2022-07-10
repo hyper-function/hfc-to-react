@@ -1,4 +1,5 @@
 import {
+  Children,
   createElement,
   Fragment,
   ReactPortal,
@@ -56,7 +57,7 @@ export default function hfcToReact(HFC: typeof HyperFunctionComponent) {
 
     const propKeys = Object.keys(props);
     for (let i = 0; i < propKeys.length; i++) {
-      const key = propKeys[i];
+      let key = propKeys[i];
       if (attrNames.has(key)) {
         attrs[key] = props[key];
         continue;
@@ -67,10 +68,23 @@ export default function hfcToReact(HFC: typeof HyperFunctionComponent) {
         continue;
       }
 
-      if (slotNames.has(key)) {
+      if (slotNames.has(key) || key === "children") {
+        let Comp = props[key];
+        // convert children to default
+        if (key === "children") {
+          key = "default";
+          const children = Children.toArray(props.children);
+          Comp = () => children;
+        }
+
+        if (typeof Comp !== "function") {
+          const node = props[key];
+          Comp = () => node;
+        }
+
         slots[key] = (container: HTMLElement, ps: any) => {
           ps = ps || {};
-          const node = props[key](ps);
+          const node = Comp(ps);
           const portal = createPortal(node, container);
           portal.key = ps.key || key;
 
