@@ -22,11 +22,12 @@
 
       class HFC {
         static tag = "p";
-        static propNames = {
-          attrs: ["a", "b", "c"],
-          events: ["ea", "eb", "ec"],
-          slots: ["sa", "sb", "sc", "default"],
-        };
+        static props = [
+          ["a", "b", "c"],
+          ["ea", "eb", "ec"],
+          ["sa", "sb", "sc", "default"],
+        ];
+
         constructor(container, props) {
           this.container = container;
           console.log(props);
@@ -36,7 +37,7 @@
           console.log("changed");
           // this.render(props);
           this.host.innerText = props.attrs.b;
-          props.slots.sb(this.slot, { a: props.attrs.b });
+          props.slots.sb(this.slot, { a: props.attrs.b + 1 });
         }
         disconnected() {
           console.log("disconnected");
@@ -85,7 +86,7 @@
         const [b, setB] = React.useState(0);
         React.useEffect(() => {
           setInterval(() => {
-            setB((b) => b + 2);
+            setB((b) => b + 3);
           }, 2000);
         }, []);
 
@@ -101,7 +102,7 @@
           sa: React.createElement("h1", {}, "sa"),
           sb: (props) => {
             console.log("ssbb");
-            return React.createElement("h1", {}, "slot: " + props.a);
+            return React.createElement("h1", {}, "slot: " + props.a + " " + b);
           },
           sc: "plain text",
           // children: "text children",
