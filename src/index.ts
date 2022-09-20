@@ -20,10 +20,10 @@ function useIsFirstRender(): boolean {
   return isFirst.current;
 }
 
-export default function hfcToReact(HFC: typeof HyperFunctionComponent) {
-  const attrNames = new Set(HFC.props[0]);
-  const eventNames = new Set(HFC.props[1]);
-  const slotNames = new Set(HFC.props[2]);
+export default function hfcToReact(HFC: HyperFunctionComponent) {
+  const attrNames = new Set(HFC.names[0]);
+  const eventNames = new Set(HFC.names[1]);
+  const slotNames = new Set(HFC.names[2]);
 
   return function (props: any) {
     const isFirst = useIsFirstRender();
@@ -44,11 +44,11 @@ export default function hfcToReact(HFC: typeof HyperFunctionComponent) {
       }[]
     >([]);
 
-    const hfc = useRef<HyperFunctionComponent | null>(null);
+    const hfc = useRef<ReturnType<HyperFunctionComponent> | null>(null);
 
     useEffect(() => {
       if (hfc.current) return;
-      hfc.current = new HFC(container.current!, {
+      hfc.current = HFC(container.current!, {
         attrs,
         events,
         slots,
