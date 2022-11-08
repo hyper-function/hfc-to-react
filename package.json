@@ -14,13 +14,17 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "react": ">=16.8.0"
-  },
   "devDependencies": {
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
     "@types/hyper-function-component": "^2.1.0",
     "@types/react": "^18.0.14",
     "@types/react-dom": "^18.0.5",
-    "typescript": "^4.7.4"
+    "jsdom": "^20.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^4.7.4",
+    "vite": "^3.2.3",
+    "vitest": "^0.25.1"
   }
 }

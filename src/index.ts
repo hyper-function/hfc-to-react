@@ -1,10 +1,12 @@
-import {
+import React, {
   useRef,
   useState,
   ReactNode,
   useEffect,
   createElement,
   FunctionComponent,
+  ReactPortal,
+  MutableRefObject,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -16,8 +18,7 @@ function useIsFirstRender(): boolean {
 
     return true;
   }
-
-  return isFirst.current;
+  return false;
 }
 
 export default function hfcToReact(HFC: HyperFunctionComponent) {
@@ -25,14 +26,15 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
   const eventNames = new Set(HFC.names[1]);
   const slotNames = new Set(HFC.names[2]);
 
-  return function (props: any) {
+  return React.forwardRef<Element, any>(function (props, _ref) {
+    const __ref = useRef(null);
+    const ref = _ref ?? __ref;
+
     const isFirst = useIsFirstRender();
     const attrs: Record<string, any> = {};
     const events: Record<string, any> = {};
     const slots: Record<string, any> = {};
-    const others: Record<string, any> = {};
 
-    const container = useRef<HTMLElement | null>(null);
     const [portals, setPortals] = useState<
       {
         container: Element;
@@ -44,24 +46,32 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
       }[]
     >([]);
 
-    const hfc = useRef<ReturnType<HyperFunctionComponent> | null>(null);
-
+    const hfc = useRef<ReturnType<HyperFunctionComponent> | undefined>();
     useEffect(() => {
-      if (hfc.current) return;
-      hfc.current = HFC(container.current!, {
+      const container = (ref as MutableRefObject<Element>).current;
+      if (props.id) container.id = props.id;
+      container.setAttribute("data-hfc", HFC.hfc);
+      hfc.current = HFC(container, {
         attrs,
         events,
         slots,
-        others,
+        _: props,
       });
 
+      (container as any).hfc = {
+        name: HFC.name,
+        version: HFC.ver,
+        instance: hfc,
+        methods: hfc.current.methods,
+      };
+
       return () => hfc.current!.disconnected();
-    }, [container]);
+    }, []);
 
     useEffect(() => {
-      if (!isFirst) {
-        hfc.current!.changed({ attrs, events, slots, others });
-      }
+      if (isFirst) return;
+
+      hfc.current!.changed({ attrs, events, slots, _: props });
     }, [props]);
 
     for (let key in props) {
@@ -110,15 +120,12 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
 
         continue;
       }
-
-      others[key] = props[key];
-      if (key === "className") others["class"] = props[key];
     }
 
-    return createElement(
-      HFC.tag,
-      { ref: container },
-      portals.map((item) =>
+    const portalNodes: ReactPortal[] = [];
+    for (let i = 0; i < portals.length; i++) {
+      const item = portals[i];
+      portalNodes.push(
         createPortal(
           item.isCompoent
             ? createElement(item.nodes as FunctionComponent, item.args)
@@ -127,7 +134,9 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
           item.container,
           item.key
         )
-      )
-    );
-  };
+      );
+    }
+
+    return createElement(HFC.tag, { ref }, portalNodes);
+  });
 }
