@@ -43,7 +43,10 @@ test("should respect attrs", () => {
   let a = 1;
   let b = [2];
   let c = { d: 3 };
-  const result = render(<HFC a={a} b={b} c={c} />);
+  const result = render(<HFC id="a1" className="a b" style={{color: 'red'}} a={a} b={b} c={c} />);
+  expect(result.container.innerHTML).include(`id="a1"`)
+  expect(result.container.innerHTML).include(`class="a b"`)
+  expect(result.container.innerHTML).include(`style="color: red;"`)
   result.getByText("a: 1 b: 2 c: 3");
 
   b[0] = 3;

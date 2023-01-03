@@ -28,7 +28,7 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
 
   return React.forwardRef<Element, any>(function (props, _ref) {
     const __ref = useRef(null);
-    const ref = _ref ?? __ref;
+    const ref = (_ref ?? __ref) as MutableRefObject<HTMLElement | null>;
 
     const isFirst = useIsFirstRender();
     const attrs: Record<string, any> = {};
@@ -48,9 +48,11 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
 
     const hfc = useRef<ReturnType<HyperFunctionComponent> | undefined>();
     useEffect(() => {
-      const container = (ref as MutableRefObject<Element>).current;
-      if (props.id) container.id = props.id;
+      const container = ref.current!;
+
       container.setAttribute("data-hfc", HFC.hfc);
+      setupCommonAttrs();
+
       hfc.current = HFC(container, {
         attrs,
         events,
@@ -71,8 +73,23 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
     useEffect(() => {
       if (isFirst) return;
 
+      setupCommonAttrs();
       hfc.current!.changed({ attrs, events, slots, _: props });
     }, [props]);
+
+    function setupCommonAttrs() {
+      if (props.id) {
+        ref.current!.id = props.id as string;
+      }
+
+      if (props.className) {
+        ref.current!.className = props.className as string;
+      }
+
+      if (props.style) {
+        Object.assign(ref.current!.style, props.style);
+      }
+    }
 
     for (let key in props) {
       if (attrNames.has(key)) {
