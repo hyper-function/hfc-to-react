@@ -50,7 +50,7 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
     useEffect(() => {
       const container = ref.current!;
 
-      container.setAttribute("data-hfc", HFC.hfc);
+      container.setAttribute("hfc-" + HFC.hfc, '');
       setupCommonAttrs();
 
       hfc.current = HFC(container, {
