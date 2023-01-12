@@ -34,6 +34,7 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
     const attrs: Record<string, any> = {};
     const events: Record<string, any> = {};
     const slots: Record<string, any> = {};
+    const _: Record<string, any> = {};
 
     const [portals, setPortals] = useState<
       {
@@ -50,14 +51,14 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
     useEffect(() => {
       const container = ref.current!;
 
-      container.setAttribute("hfc-" + HFC.hfc, '');
       setupCommonAttrs();
+      container.classList.add("-hfc-" + HFC.hfc);
 
       hfc.current = HFC(container, {
         attrs,
         events,
         slots,
-        _: props,
+        _,
       });
 
       (container as any).hfc = {
@@ -74,7 +75,7 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
       if (isFirst) return;
 
       setupCommonAttrs();
-      hfc.current!.changed({ attrs, events, slots, _: props });
+      hfc.current!.changed({ attrs, events, slots, _ });
     }, [props]);
 
     function setupCommonAttrs() {
@@ -137,6 +138,8 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
 
         continue;
       }
+
+      _[key] = props[key];
     }
 
     const portalNodes: ReactPortal[] = [];
