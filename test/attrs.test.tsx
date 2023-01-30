@@ -1,6 +1,5 @@
 /// <reference types="vitest/globals" />
 import React from "react";
-import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
 import hfcToReact from "../src";
 
@@ -45,7 +44,8 @@ test("should respect attrs", () => {
   let c = { d: 3 };
   const result = render(<HFC id="a1" className="a b" style={{color: 'red'}} a={a} b={b} c={c} />);
   expect(result.container.innerHTML).include(`id="a1"`)
-  expect(result.container.innerHTML).include(`class="a b -hfc-demo-hfc"`)
+  expect(result.container.innerHTML).include(`class="a b"`)
+  expect(result.container.innerHTML).include(`hfc="demo-hfc"`)
   expect(result.container.innerHTML).include(`style="color: red;"`)
   result.getByText("a: 1 b: 2 c: 3");
 

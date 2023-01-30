@@ -1,6 +1,5 @@
 /// <reference types="vitest/globals" />
 import React, { createRef } from "react";
-import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
 import hfcToReact from "../src";
 

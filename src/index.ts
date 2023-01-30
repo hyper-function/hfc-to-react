@@ -51,9 +51,6 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
     useEffect(() => {
       const container = ref.current!;
 
-      setupCommonAttrs();
-      container.classList.add("-hfc-" + HFC.hfc);
-
       hfc.current = HFC(container, {
         attrs,
         events,
@@ -61,12 +58,9 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
         _,
       });
 
-      (container as any).hfc = {
-        name: HFC.name,
-        version: HFC.ver,
-        instance: hfc,
-        methods: hfc.current.methods,
-      };
+      container!.setAttribute("hfc", HFC.hfc);
+      (container as any).hfc = hfc.current;
+      (container as any).HFC = HFC;
 
       return () => hfc.current!.disconnected();
     }, []);
@@ -74,23 +68,8 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
     useEffect(() => {
       if (isFirst) return;
 
-      setupCommonAttrs();
       hfc.current!.changed({ attrs, events, slots, _ });
     }, [props]);
-
-    function setupCommonAttrs() {
-      if (props.id) {
-        ref.current!.id = props.id as string;
-      }
-
-      if (props.className) {
-        ref.current!.className = props.className as string;
-      }
-
-      if (props.style) {
-        Object.assign(ref.current!.style, props.style);
-      }
-    }
 
     for (let key in props) {
       if (attrNames.has(key)) {
@@ -157,6 +136,6 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
       );
     }
 
-    return createElement(HFC.tag, { ref }, portalNodes);
+    return createElement(HFC.tag, { ref, ..._ }, portalNodes);
   });
 }

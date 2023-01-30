@@ -1,6 +1,6 @@
 {
   "name": "hfc-to-react",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,7 +15,6 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@types/hyper-function-component": "^2.1.0",
     "@types/react": "^18.0.14",
