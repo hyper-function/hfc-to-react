@@ -1,14 +1,25 @@
 import React, {
   useRef,
   useState,
+  Fragment,
   ReactNode,
   useEffect,
   createElement,
   FunctionComponent,
-  ReactPortal,
   MutableRefObject,
 } from "react";
 import { createPortal } from "react-dom";
+import type { HyperFunctionComponent } from "hyper-function-component";
+
+let uuid = 0;
+type SlotPortals = Map<
+  Element,
+  {
+    key: string;
+    name: string;
+    nodes: ReactNode;
+  }
+>;
 
 function useIsFirstRender(): boolean {
   const isFirst = useRef(true);
@@ -19,6 +30,22 @@ function useIsFirstRender(): boolean {
     return true;
   }
   return false;
+}
+
+function PortalRender(props: {
+  forceUpdate: { current: () => void };
+  portals: SlotPortals;
+}) {
+  const [, update] = useState(0);
+  props.forceUpdate.current = () => update((n) => n + 1);
+
+  return createElement(
+    Fragment,
+    null,
+    Array.from(props.portals).map(([target, { nodes, key }]) =>
+      createPortal(nodes, target, key)
+    )
+  );
 }
 
 export default function hfcToReact(HFC: HyperFunctionComponent) {
@@ -36,32 +63,71 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
     const slots: Record<string, any> = {};
     const _: Record<string, any> = {};
 
-    const [portals, setPortals] = useState<
-      {
-        container: Element;
-        args: Record<string, any>;
-        propKey: string;
-        key: string;
-        nodes: ReactNode | FunctionComponent;
-        isCompoent: boolean;
-      }[]
-    >([]);
+    let forceUpdateSlots = useRef(() => {});
+    const slotPortals = useRef<SlotPortals | null>(null);
 
-    const hfc = useRef<ReturnType<HyperFunctionComponent> | undefined>();
-    useEffect(() => {
-      const container = ref.current!;
+    if (slotPortals.current === null) {
+      slotPortals.current = new Map();
+    }
 
-      hfc.current = HFC(container, {
+    for (let name in props) {
+      if (attrNames.has(name)) {
+        attrs[name] = props[name];
+        continue;
+      }
+
+      if (eventNames.has(name)) {
+        events[name] = props[name];
+        continue;
+      }
+
+      if (slotNames.has(name) || name === "children") {
+        let nodes = props[name];
+
+        if (name === "children") name = "default";
+
+        const isCompoent = typeof nodes === "function";
+
+        slots[name] = (container: Element, args?: Record<string, any>) => {
+          if (!args) {
+            slotPortals.current!.delete(container);
+          } else {
+            slotPortals.current!.set(container, {
+              name,
+              key: "k" + uuid++,
+              nodes: isCompoent
+                ? createElement(nodes as FunctionComponent, args)
+                : (nodes as ReactNode),
+            });
+          }
+
+          forceUpdateSlots.current();
+        };
+
+        continue;
+      }
+
+      _[name] = props[name];
+    }
+
+    const hfc = useRef<ReturnType<HyperFunctionComponent> | null>(null);
+    if (hfc.current === null) {
+      hfc.current = HFC({
         attrs,
         events,
         slots,
         _,
       });
+    }
+
+    useEffect(() => {
+      const container = ref.current!;
 
       container!.setAttribute("hfc", HFC.hfc);
       (container as any).hfc = hfc.current;
       (container as any).HFC = HFC;
 
+      hfc.current!.connected(container!);
       return () => hfc.current!.disconnected();
     }, []);
 
@@ -69,73 +135,15 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
       if (isFirst) return;
 
       hfc.current!.changed({ attrs, events, slots, _ });
-    }, [props]);
+    });
 
-    for (let key in props) {
-      if (attrNames.has(key)) {
-        attrs[key] = props[key];
-        continue;
-      }
-
-      if (eventNames.has(key)) {
-        events[key] = props[key];
-        continue;
-      }
-
-      if (slotNames.has(key) || key === "children") {
-        let nodes = props[key];
-
-        if (key === "children") key = "default";
-
-        const isCompoent = typeof nodes === "function";
-
-        for (let i = 0; i < portals.length; i++) {
-          if (portals[i].propKey === key) {
-            portals[i].nodes = nodes;
-          }
-        }
-
-        slots[key] = (container: Element, args: any) => {
-          args = args || {};
-
-          const portal = {
-            container,
-            args,
-            propKey: key,
-            key: args.key || key,
-            nodes,
-            isCompoent,
-          };
-
-          setPortals((portals) => {
-            const index = portals.findIndex((item) => item.key === key);
-            index === -1 ? portals.push(portal) : (portals[index] = portal);
-
-            return [...portals];
-          });
-        };
-
-        continue;
-      }
-
-      _[key] = props[key];
-    }
-
-    const portalNodes: ReactPortal[] = [];
-    for (let i = 0; i < portals.length; i++) {
-      const item = portals[i];
-      portalNodes.push(
-        createPortal(
-          item.isCompoent
-            ? createElement(item.nodes as FunctionComponent, item.args)
-            : (item.nodes as ReactNode),
-
-          item.container,
-          item.key
-        )
-      );
-    }
-
-    return createElement(HFC.tag, { ref, ..._ }, portalNodes);
+    return createElement(
+      HFC.tag,
+      { ref, ..._ },
+      createElement(PortalRender, {
+        forceUpdate: forceUpdateSlots,
+        portals: slotPortals.current,
+      })
+    );
   });
 }

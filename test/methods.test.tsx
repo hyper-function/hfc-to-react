@@ -1,15 +1,20 @@
 /// <reference types="vitest/globals" />
 import React, { createRef } from "react";
 import { render } from "@testing-library/react";
+import type { HyperFunctionComponent } from "hyper-function-component";
 import hfcToReact from "../src";
 
 test("should call hfc methods", () => {
-  const DemoHFC: HyperFunctionComponent = function (container, initProps) {
+  const DemoHFC: HyperFunctionComponent = function (initProps) {
+    let target: Element;
     return {
       methods: {
         show(args) {
-          container.innerHTML = "show: " + args!.duration;
+          target.innerHTML = "show: " + args!.duration;
         },
+      },
+      connected(container) {
+        target = container;
       },
       changed() {},
       disconnected() {},

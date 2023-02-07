@@ -1,15 +1,17 @@
 /// <reference types="vitest/globals" />
 import React from "react";
 import { render } from "@testing-library/react";
+import type { HyperFunctionComponent } from "hyper-function-component";
 import hfcToReact from "../src";
 
 test("should handle hfc events", () => {
-  const DemoHFC: HyperFunctionComponent = function (container, initProps) {
-    initProps.events.onClick({ count: 1 });
+  const DemoHFC: HyperFunctionComponent = function (initProps) {
+    initProps.events!.onClick({ count: 1 });
     return {
       methods: {},
+      connected() {},
       changed(props) {
-        props.events.onClick({ count: 2 });
+        props.events!.onClick({ count: 2 });
       },
       disconnected() {},
     };
