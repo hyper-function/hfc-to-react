@@ -124,3 +124,34 @@ test("should render comp slot with props", () => {
   );
   getByText("rerendered comp slot 3");
 });
+
+test("should not rerender slot when slot not change", () => {
+  const DemoHFC: HyperFunctionComponent = function (initProps) {
+    return {
+      methods: {},
+      connected(container) {},
+      changed(props) {
+        expect(props.slots!.compSlot).toBe(initProps.slots!.compSlot);
+        expect(props.slots!.nodeSlot).toBe(initProps.slots!.nodeSlot);
+      },
+      disconnected() {},
+    };
+  };
+
+  DemoHFC.hfc = "demo-hfc";
+  DemoHFC.ver = "1.0.0";
+  DemoHFC.tag = "strong";
+  DemoHFC.names = [[], [], ["compSlot", "nodeSlot"], []];
+
+  function CompSlot() {
+    return <p>comp slot</p>;
+  }
+
+  const NodeSlot = <h1>node slot</h1>;
+
+  const HFC = hfcToReact(DemoHFC);
+  const { rerender } = render(
+    <HFC compSlot={CompSlot} nodeSlot={NodeSlot}></HFC>
+  );
+  rerender(<HFC compSlot={CompSlot} nodeSlot={NodeSlot}></HFC>);
+});

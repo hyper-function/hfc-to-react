@@ -70,6 +70,11 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
       slotPortals.current = new Map();
     }
 
+    const slotCache = useRef<Record<string, any> | null>(null);
+    if (slotCache.current === null) {
+      slotCache.current = {};
+    }
+
     for (let name in props) {
       if (attrNames.has(name)) {
         attrs[name] = props[name];
@@ -83,8 +88,15 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
 
       if (slotNames.has(name) || name === "children") {
         let nodes = props[name];
-
         if (name === "children") name = "default";
+
+        if (
+          slotCache.current[name] &&
+          slotCache.current[name].origin === nodes
+        ) {
+          slots[name] = slotCache.current[name].transformed;
+          continue;
+        }
 
         const isCompoent = typeof nodes === "function";
 
@@ -104,6 +116,10 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
           forceUpdateSlots.current();
         };
 
+        slotCache.current[name] = {
+          origin: nodes,
+          transformed: slots[name],
+        };
         continue;
       }
 
