@@ -2,6 +2,7 @@ import React, {
   useRef,
   useState,
   Fragment,
+  RefObject,
   ReactNode,
   useEffect,
   createElement,
@@ -9,11 +10,14 @@ import React, {
   MutableRefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import type { HyperFunctionComponent } from "hyper-function-component";
+import type {
+  HfcSlotOptions,
+  HyperFunctionComponent,
+} from "hyper-function-component";
 
 let uuid = 0;
 type SlotPortals = Map<
-  Element,
+  HfcSlotOptions,
   {
     key: string;
     name: string;
@@ -33,17 +37,17 @@ function useIsFirstRender(): boolean {
 }
 
 function PortalRender(props: {
-  forceUpdate: { current: () => void };
-  portals: SlotPortals;
+  forceUpdate: RefObject<{ call: () => void } | null>;
+  portals: RefObject<SlotPortals>;
 }) {
   const [, update] = useState(0);
-  props.forceUpdate.current = () => update((n) => n + 1);
+  props.forceUpdate.current!.call = () => update((n) => n + 1);
 
   return createElement(
     Fragment,
     null,
-    Array.from(props.portals).map(([target, { nodes, key }]) =>
-      createPortal(nodes, target, key)
+    Array.from(props.portals.current!).map(([hfcSlot, { nodes, key }]) =>
+      createPortal(nodes, hfcSlot.target, key)
     )
   );
 }
@@ -63,16 +67,19 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
     const slots: Record<string, any> = {};
     const _: Record<string, any> = {};
 
-    let forceUpdateSlots = useRef(() => {});
-    const slotPortals = useRef<SlotPortals | null>(null);
+    let forceUpdateSlots = useRef<{ call: () => void } | null>(null);
+    if (forceUpdateSlots.current === null) {
+      forceUpdateSlots.current = { call: () => {} };
+    }
 
+    const slotPortals = useRef<SlotPortals | null>(null);
     if (slotPortals.current === null) {
       slotPortals.current = new Map();
     }
 
-    const slotCache = useRef<Record<string, any> | null>(null);
+    const slotCache = useRef<Map<string, any> | null>(null);
     if (slotCache.current === null) {
-      slotCache.current = {};
+      slotCache.current = new Map();
     }
 
     for (let name in props) {
@@ -90,36 +97,41 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
         let nodes = props[name];
         if (name === "children") name = "default";
 
-        if (
-          slotCache.current[name] &&
-          slotCache.current[name].origin === nodes
-        ) {
-          slots[name] = slotCache.current[name].transformed;
+        const cache = slotCache.current!.get(name);
+        if (cache && cache.origin === nodes) {
+          slots[name] = cache.transformed;
           continue;
         }
 
         const isCompoent = typeof nodes === "function";
 
-        slots[name] = (container: Element, args?: Record<string, any>) => {
-          if (!args) {
-            slotPortals.current!.delete(container);
-          } else {
-            slotPortals.current!.set(container, {
+        slots[name] = (hfcSlot: HfcSlotOptions) => {
+          const key = "k" + uuid++;
+
+          function renderSlot() {
+            slotPortals.current!.set(hfcSlot, {
+              key,
               name,
-              key: "k" + uuid++,
               nodes: isCompoent
-                ? createElement(nodes as FunctionComponent, args)
+                ? createElement(nodes as FunctionComponent, hfcSlot.args)
                 : (nodes as ReactNode),
             });
-          }
 
-          forceUpdateSlots.current();
+            forceUpdateSlots.current!.call();
+          }
+          renderSlot();
+
+          hfcSlot.changed = renderSlot;
+
+          hfcSlot.removed = function () {
+            slotPortals.current!.delete(hfcSlot);
+          };
         };
 
-        slotCache.current[name] = {
+        slotCache.current.set(name, {
           origin: nodes,
           transformed: slots[name],
-        };
+        });
         continue;
       }
 
@@ -157,8 +169,9 @@ export default function hfcToReact(HFC: HyperFunctionComponent) {
       HFC.tag,
       { ref, ..._ },
       createElement(PortalRender, {
+        key: "hfcSlotRender",
         forceUpdate: forceUpdateSlots,
-        portals: slotPortals.current,
+        portals: slotPortals,
       })
     );
   });

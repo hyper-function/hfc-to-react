@@ -1,6 +1,6 @@
 {
   "name": "hfc-to-react",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,7 +18,7 @@
     "@testing-library/react": "^13.4.0",
     "@types/react": "^18.0.14",
     "@types/react-dom": "^18.0.5",
-    "hyper-function-component": "^2.3.1",
+    "hyper-function-component": "^2.3.4",
     "jsdom": "^20.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

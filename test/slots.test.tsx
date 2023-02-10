@@ -1,7 +1,10 @@
 /// <reference types="vitest/globals" />
 import React, { createElement, ReactNode, useCallback, useRef } from "react";
 import { act, render } from "@testing-library/react";
-import type { HyperFunctionComponent } from "hyper-function-component";
+import type {
+  HfcSlotOptions,
+  HyperFunctionComponent,
+} from "hyper-function-component";
 import hfcToReact from "../src";
 
 test("should render node slots", async () => {
@@ -12,6 +15,9 @@ test("should render node slots", async () => {
 
     let p = initProps;
 
+    let defaultSlot: HfcSlotOptions;
+    let nodeSlot: HfcSlotOptions;
+
     return {
       methods: {},
       connected(container) {
@@ -21,13 +27,38 @@ test("should render node slots", async () => {
         target.append(defaultContainer);
         target.append(nodeSlotContainer);
 
-        p.slots!.default(defaultContainer, {});
-        p.slots!.nodeSlot(nodeSlotContainer, {});
+        defaultSlot = {
+          target: defaultContainer,
+          args: {},
+        };
+
+        nodeSlot = {
+          target: nodeSlotContainer,
+          args: {},
+        };
+
+        p.slots!.default(defaultSlot);
+        p.slots!.nodeSlot(nodeSlot);
       },
       changed(props) {
         p = props;
-        p.slots!.default(defaultContainer, {});
-        p.slots!.nodeSlot(nodeSlotContainer, {});
+
+        defaultSlot.removed?.();
+        defaultSlot = {
+          target: defaultContainer,
+          args: {},
+        };
+        props.slots!.default(defaultSlot);
+
+        nodeSlot.removed?.();
+        nodeSlot = {
+          target: nodeSlotContainer,
+          args: {},
+        };
+
+        props.slots!.nodeSlot(nodeSlot);
+        // defaultSlot.changed?.();
+        // nodeSlot.changed?.();
       },
       disconnected() {},
     };
@@ -85,6 +116,7 @@ test("should render comp slot with props", () => {
     let p = initProps;
 
     let count = 0;
+    let compSlot: HfcSlotOptions;
 
     return {
       methods: {},
@@ -92,11 +124,21 @@ test("should render comp slot with props", () => {
         target = container;
         target.append(compSlotContainer);
 
-        p.slots!.compSlot(compSlotContainer, { count: ++count });
+        compSlot = {
+          target: compSlotContainer,
+          args: { count: ++count },
+        };
+
+        p.slots!.compSlot(compSlot);
       },
       changed(props) {
         p = props;
-        p.slots!.compSlot(compSlotContainer, { count: ++count });
+        compSlot.removed?.();
+        compSlot = {
+          target: compSlotContainer,
+          args: { count: ++count },
+        };
+        props.slots!.compSlot(compSlot);
       },
       disconnected() {},
     };
